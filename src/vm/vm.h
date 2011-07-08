@@ -18,6 +18,7 @@ class vm {
             CONS,
             COPYGLOB,
             DIV,
+            DUP,
             EVAL,
             EQ,
             GETBASIC,
@@ -50,6 +51,7 @@ class vm {
             POPENV,
             SLIDE,
             SUB,
+            STORE,
             TARG,
             UPDATE,
             WRAP

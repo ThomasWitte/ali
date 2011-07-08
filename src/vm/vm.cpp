@@ -1,22 +1,59 @@
 #include "vm.h"
 
+#define INST_TYPE unsigned char
+#define INTEGER long long
+#define ADDR_TYPE unsigned int
+
+
+//returns the real address corresponding to an address in the vm
+//returns calls exception(string) if ADDR is not valid
 #define MEM(ADDR) \
     (((ADDR) >= 0 && (ADDR) < memsz) ? (mem + (ADDR)) : exception("Segfault"))
 
+//copies SIZE bytes from VAL to DEST
+//calls exception if one of the addresses is not valid
 #define COPY(DEST, VAL, SIZE)                           \
     if((DEST) >= 0 && (DEST) < memsz &&                 \
         (VAL) >= 0 && (VAL) < memsz) {                  \
         memcpy(mem + (DEST), mem + (VAL), (SIZE));      \
     } else exception("Segfault");
 
-#define INST_TYPE unsigned char
-#define INTEGER long long
-#define ADDR_TYPE int
+//allocates SIZE bytes on the heap and returns the address in PTR
+#define NEW(PTR, SIZE)                                  \
+    hp -= (SIZE);                                       \
+    PTR = hp;
+
+//frees PTR (currently it does nothing)
+#define FREE(PTR)
+
+
+//implementations of the instructions
+
+#define _ADD()                                          \
+    *(INTEGER*)MEM(sp - 2*sizeof(INTEGER)) +=           \
+        *(INTEGER*)MEM(sp - sizeof(INTEGER));           \
+    sp -= sizeof(INTEGER);                              \
+    break;
+
+#define _DUP()                                          \
+    *(INTEGER*)MEM(sp) =                                \
+        *(INTEGER*)MEM(sp - sizeof(INTEGER));           \
+    sp += sizeof(INTEGER);                              \
+    break;
+
+#define _GETBASIC()                                     \
+    /*save the address in addr1*/                       \
+    addr1 = *(ADDR_TYPE*)MEM(sp - sizeof(ADDR_TYPE));   \
+    sp -= sizeof(ADDR_TYPE);                            \
+    /*get the value (skip one byte for the identifier)*/\
+    COPY(sp, addr1+1, sizeof(INTEGER));                 \
+    sp += sizeof(INTEGER);                              \
+    break;
 
 #define _JUMPZ()                                        \
+    sp -= sizeof(INTEGER);                              \
     if(*(INTEGER*)MEM(sp) == 0) {                       \
         pc = *(ADDR_TYPE*)(inst + sizeof(INST_TYPE));   \
-        sp -= sizeof(INTEGER);                          \
         continue;                                       \
     }                                                   \
     /*Skip the argument of jumpz*/                      \
@@ -30,19 +67,31 @@
     break;
 
 #define _MKBASIC()                                      \
-    /*move value to the heap*/                          \
-    hp -= sizeof(INTEGER);                              \
-    COPY(hp, sp, sizeof(INTEGER));                      \
+    /*allocate memory on the heap*/                     \
+    /*we need one byte more for the type-indentifier*/  \
+    NEW(addr1, sizeof(INTEGER) + 1);                    \
+    /*write an identifier to addr1*/                    \
+    *MEM(addr1) = 'B';                                  \
+    /*copy the data*/                                   \
     sp -= sizeof(INTEGER);                              \
-    /*write an identifier to hp;*/                      \
-    --hp;                                               \
-    *MEM(hp) = 'B';                                     \
+    COPY(addr1+1, sp, sizeof(INTEGER));                 \
     /*push a pointer to the stack*/                     \
-    *(ADDR_TYPE*)MEM(sp) = hp;                          \
+    *(ADDR_TYPE*)MEM(sp) = addr1;                       \
     sp += sizeof(ADDR_TYPE);                            \
     break;
 
+#define _STORE()                                        \
+    COPY(sp - sizeof(INTEGER),                          \
+/*this is the destination address + 1 byte identifier*/ \
+         *(ADDR_TYPE*)MEM(                              \
+            sp - sizeof(INTEGER) - sizeof(ADDR_TYPE))+1,\
+         sizeof(INTEGER));                              \
+    /*adjust the stack pointer*/                        \
+    sp -= sizeof(ADDR_TYPE) + sizeof(INTEGER);          \
+    break;
+
 vm::vm(unsigned int memsize) {
+    //initialize the vm
     mem = NULL;
     pc = sp = gp = fp = 0;
     hp = memsize-1;
@@ -54,16 +103,20 @@ vm::vm(unsigned int memsize) {
     }
 
     //Load Program
+    //at the moment its just a dummy program loader…
     INST_TYPE *prog = (INST_TYPE*)MEM(pc);
 
     char p[] = {
-        NOP,    LOADC,  0,      0,      0,      0,      0,      0,
-        0,      0,      JUMPZ,  16,     0,      0,      0,      NIL,
-        LOADC,  5,      0,      0,      0,      0,      0,      0,
-        0,      MKBASIC,HALT
+        LOADC, 0xff, 0xff, 0xff, 0x0f, 0, 0, 0, 0, // = 2^28-1 (counter)
+        LOADC, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // = -1
+        ADD, //decrements the counter
+        DUP, //jumpz consumes an integer, so we duplicate it
+        JUMPZ, 30, 0, 0, 0, //jump to the halt instruction
+        JUMP, 9, 0, 0, 0, //jump to instruction 1 (byte 9)
+        HALT
     };
-    memcpy(prog, p, 27);
-    sp = 27;
+    memcpy(prog, p, 31);
+    sp = 100;
 }
 
 vm::~vm() {
@@ -75,19 +128,39 @@ int vm::start() {
     if(!mem)
         return -1;
 
+    //some temporary addresses some instructions might need
+    ADDR_TYPE addr1;
+
     for(;;) {
-        //I'm not sure about the size of the pointers
+        //load next instruction
         char *inst = MEM(pc);
-        std::cout << (int)*inst << std::endl;
+
+        //prints the current instruction
+        //just for debugging purposes
+        //std::cout << (int)*inst << std::endl;
 
         switch(*inst) {
             case NOP:
             break;
 
+            case ADD:
+            //adds the two integers on top of the stack
+            _ADD();
+
+            case DUP:
+            //duplicates the integer on top of the stack
+            _DUP();
+
+            case GETBASIC:
+            //replaces a pointer to a data object with the object
+            _GETBASIC();
+
             case HALT:
+            //Stops the vm
             return 0;
 
             case JUMP:
+            //Jumps to the address on top of the stack
             pc = *(ADDR_TYPE*)(inst + sizeof(INST_TYPE));
             continue;
 
@@ -98,6 +171,11 @@ int vm::start() {
             case LOADC:
             //loads a INTEGER constant on the stack
             _LOADC();
+
+            case STORE:
+            //pushes the value on top of the stack to the adress lying at pos 2 of the stack
+            //there is no check, if the destination address is allocated or of the right type
+            _STORE();
 
             case MKBASIC:
             //Takes the INTEGER from the stack and stores it on the heap
@@ -113,6 +191,7 @@ int vm::start() {
     return 0;
 }
 
+//called if an instruction encounters an error
 char *vm::exception(std::string msg) {
     //This should also show the values and a stackdump/memory dump
 
@@ -121,5 +200,6 @@ char *vm::exception(std::string msg) {
     std::cerr << "> SP = " << sp << std::endl;
     std::cerr << "> GP = " << gp << std::endl;
     std::cerr << "> FP = " << fp << std::endl;
+    exit(EXIT_FAILURE);
     return mem;
 }
