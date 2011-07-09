@@ -101,27 +101,32 @@ vm::vm(unsigned int memsize) {
         std::cerr << "Failed to initialize VM." << std::endl;
         exit(EXIT_FAILURE);
     }
-
-    //Load Program
-    //at the moment its just a dummy program loader…
-    INST_TYPE *prog = (INST_TYPE*)MEM(pc);
-
-    char p[] = {
-        LOADC, 0xff, 0xff, 0xff, 0x0f, 0, 0, 0, 0, // = 2^28-1 (counter)
-        LOADC, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, // = -1
-        ADD, //decrements the counter
-        DUP, //jumpz consumes an integer, so we duplicate it
-        JUMPZ, 30, 0, 0, 0, //jump to the halt instruction
-        JUMP, 9, 0, 0, 0, //jump to instruction 1 (byte 9)
-        HALT
-    };
-    memcpy(prog, p, 31);
-    sp = 100;
 }
 
 vm::~vm() {
     if(mem)
         delete [] mem;
+}
+
+void vm::load_binary(std::string filename) {
+    std::ifstream file;
+    file.open(filename.c_str(), std::ios_base::in);
+    if(!file) {
+        std::cerr << "Could not open file " << filename << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    int i = 0;
+    for(; !file.eof(); ++i) {
+        file.read(&mem[i], 1);
+    }
+
+    file.close();
+
+    sp = i+1;
+    pc = fp = gp = 0;
+    hp = memsz-1;
+    std::cout << "Starting..." << std::endl;
 }
 
 int vm::start() {

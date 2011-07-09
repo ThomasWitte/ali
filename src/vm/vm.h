@@ -2,6 +2,7 @@
 #define VM_H
 
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
 #include <string>
 #include <cstring>
@@ -9,33 +10,33 @@
 class vm {
     public:
         enum {
-            NOP,
+            NOP,        //0x00
             ALLOC,
-            ADD,
+            ADD,        //0x02
             AND,
             APPLY,
             APPLY0,
             CONS,
             COPYGLOB,
             DIV,
-            DUP,
+            DUP,        //0x09
             EVAL,
             EQ,
-            GETBASIC,
+            GETBASIC,   //0x0c
             GETVEC,
             GEQ,
             GR,
-            HALT,
-            JUMP,
-            JUMPZ,
+            HALT,       //0x10
+            JUMP,       //0x11
+            JUMPZ,      //0x12
             LE,
             LEQ,
-            LOADC,
+            LOADC,      //0x15
             MARK,
             MARK0,
             MOD,
             MUL,
-            MKBASIC,
+            MKBASIC,    //0x1a
             MKCLOS,
             MKFUNVAL,
             MKVEC,
@@ -51,7 +52,7 @@ class vm {
             POPENV,
             SLIDE,
             SUB,
-            STORE,
+            STORE,      //0x2a
             TARG,
             UPDATE,
             WRAP
@@ -62,6 +63,7 @@ class vm {
 
         int start();
         char *exception(std::string msg);
+        void load_binary(std::string filename);
     private:
         char *mem;
         unsigned int pc, sp, gp, fp, hp;
