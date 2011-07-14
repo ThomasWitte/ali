@@ -10,12 +10,15 @@
 #define MEM(ADDR) \
     (((ADDR) >= 0 && (ADDR) < memsz) ? (mem + (ADDR)) : exception("Segfault"))
 
+//faster version of MEM without address check
+#define FMEM(ADDR) (mem + (ADDR))
+
 //copies SIZE bytes from VAL to DEST
 //calls exception if one of the addresses is not valid
 #define COPY(DEST, VAL, SIZE)                           \
     if((DEST) >= 0 && (DEST) < memsz &&                 \
         (VAL) >= 0 && (VAL) < memsz) {                  \
-        memcpy(mem + (DEST), mem + (VAL), (SIZE));      \
+        memcpy(FMEM(DEST), FMEM(VAL), (SIZE));          \
     } else exception("Segfault");
 
 //allocates SIZE bytes on the heap and returns the address in PTR
@@ -30,14 +33,14 @@
 //implementations of the instructions
 
 #define _ADD()                                          \
-    *(INTEGER*)MEM(sp - 2*sizeof(INTEGER)) +=           \
-        *(INTEGER*)MEM(sp - sizeof(INTEGER));           \
+    *(INTEGER*)FMEM(sp - 2*sizeof(INTEGER)) +=          \
+        *(INTEGER*)FMEM(sp - sizeof(INTEGER));          \
     sp -= sizeof(INTEGER);                              \
     break;
 
 #define _DUP()                                          \
     *(INTEGER*)MEM(sp) =                                \
-        *(INTEGER*)MEM(sp - sizeof(INTEGER));           \
+        *(INTEGER*)FMEM(sp - sizeof(INTEGER));          \
     sp += sizeof(INTEGER);                              \
     break;
 
@@ -52,7 +55,7 @@
 
 #define _JUMPZ()                                        \
     sp -= sizeof(INTEGER);                              \
-    if(*(INTEGER*)MEM(sp) == 0) {                       \
+    if(*(INTEGER*)FMEM(sp) == 0) {                      \
         pc = *(ADDR_TYPE*)(inst + sizeof(INST_TYPE));   \
         continue;                                       \
     }                                                   \
@@ -165,7 +168,7 @@ int vm::start() {
             return 0;
 
             case JUMP:
-            //Jumps to the address on top of the stack
+            //Jumps to an address
             pc = *(ADDR_TYPE*)(inst + sizeof(INST_TYPE));
             continue;
 
