@@ -10,7 +10,21 @@ public:
     ~assembler();
     void load(const std::string& filename);
     void binary_dump(const std::string& filename);
+
 private:
+    template <typename T, typename T2>
+    inline void cpy_val(T dest, const T2& val)
+        {
+            *(T2*)(dest) = val;
+        }
+
+    template <typename T>
+    inline void load_symbol(int address, const T& val)
+        {
+            cpy_val(prg + address, val);
+            address += sizeof(T);
+        }
+
     char *prg;
     int address;
 };

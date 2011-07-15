@@ -15,12 +15,6 @@
 //It might crash or produce random binary garbage without giving any helpful error message, as it is
 //just intended as a temporary program used for testing purposes.
 
-template <typename T, typename T2>
-inline void cpy_val(T dest, const T2& val)
-{
-    *(T2*)(dest) = val;
-}
-
 
 assembler::assembler() {
     prg = new char[1024]; //1kB should be enough at first
@@ -96,17 +90,24 @@ void assembler::load(const std::string& filename) {
     std::map<int, std::string> missing_ref;
 
     while(!file.eof()) {
+        // Read next word.
         file >> symbol;
+
+        // Get last char of the word.
+        // dm: Really crap method to check the types of the tokens :-D.
         char c = *(--symbol.end());
-        if(c == ':') //symbol is a label definition
+
+        if(c == ':')
+            // Symbol is a label definition
             labels[symbol.substr(0, symbol.length()-1)] = address;
-        else if(c > 47 && c < 58) { //symbol is a number
-            cpy_val(prg+address, from_string<long long>(symbol));
-            address += sizeof(long long);
-        }
-        else { //symbol is an instruction or label reference
+        else if(c > 47 && c < 58)
+            // Symbol is a number.
+            // Load into program buffer.
+            load_symbol(address, from_string<long long>(symbol));
+        else {
+            // Symbol is an instruction or label reference.
             char i = 0;
-            for(;static_cast<unsigned int>(i) < inst.size(); i++) {
+            for(; static_cast<unsigned int>(i) < inst.size(); i++) {
                 if(symbol == inst[(int)i]) {
                     prg[address] = i;
                     address++;
@@ -114,17 +115,16 @@ void assembler::load(const std::string& filename) {
                 }
             }
 
-            if(static_cast<unsigned int>(i) == inst.size()) { //symbol must be a label reference
-                if(labels.count(symbol) == 1) { //label is already defined
-                    cpy_val(prg+address, labels[symbol]);
-                    address += sizeof(int);
-                }
+            if(static_cast<unsigned int>(i) == inst.size()) {
+                // Symbol must be a label reference.
+                if(labels.count(symbol) == 1)
+                    // Label is already defined.
+                    load_symbol(address, labels[symbol]);
                 else {
                     missing_ref[address] = symbol;
                     address += sizeof(int);
                 }
             }
-
         }
     }
 
