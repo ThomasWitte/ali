@@ -1,5 +1,5 @@
 #include "vm.h"
-#include "assembler.h"
+#include "assembler.hpp"
 
 int main(int argc, char **argv) {
     vm the_vm;
