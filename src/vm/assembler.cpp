@@ -6,6 +6,9 @@
 #include <cstdlib>
 
 #include <boost/assign/std/vector.hpp>
+#include <boost/foreach.hpp>
+
+#define foreach BOOST_FOREACH
 
 
 //this assembler makes some assuptions on the size of the datatypes and the total size of the program.
@@ -125,11 +128,13 @@ void assembler::load(const std::string& filename) {
         }
     }
 
-    for(std::map<int, std::string>::iterator i = missing_ref.begin(); i != missing_ref.end(); i++) {
-        if(labels.count((*i).second) == 0) {
-            std::cerr << "Unknown label or instruction: " << (*i).second << std::endl;
-        }
-        *(int*)(prg+(*i).first) = labels[(*i).second];
+    typedef std::map<int, std::string> ref_map;
+
+    foreach(const ref_map::value_type& i, missing_ref) {
+        if(labels.count(i.second) == 0)
+            std::cerr << "Unknown label or instruction: " << i.second << std::endl;
+
+        cpy_val(prg + i.first, labels[i.second]);
     }
 
     file.close();
