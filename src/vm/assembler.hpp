@@ -22,7 +22,7 @@ private:
     inline void load_symbol(int address, const T& val)
         {
             cpy_val(prg + address, val);
-            address += sizeof(T);
+            this->address += sizeof(T);
         }
 
     char *prg;
