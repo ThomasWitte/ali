@@ -1,12 +1,23 @@
-#include "assembler.h"
+#include "assembler.hpp"
+
 #include <iostream>
 #include <fstream>
 #include <map>
 #include <cstdlib>
 
+#include <boost/assign/std/vector.hpp>
+
+
 //this assembler makes some assuptions on the size of the datatypes and the total size of the program.
 //It might crash or produce random binary garbage without giving any helpful error message, as it is
 //just intended as a temporary program used for testing purposes.
+
+template <typename T, typename T2>
+inline void cpy_val(T dest, const T2& val)
+{
+    *(T2*)(dest) = val;
+}
+
 
 assembler::assembler() {
     prg = new char[1024]; //1kB should be enough at first
@@ -17,9 +28,12 @@ assembler::~assembler() {
         delete [] prg;
 }
 
-void assembler::load(std::string filename) {
-    std::string inst[] {
-        "nop",        //0x00
+void assembler::load(const std::string& filename) {
+    using boost::assign::operator+=;
+
+    std::vector<std::string> inst;
+
+    inst += "nop",        //0x00
         "ALLOC",
         "add",        //0x02
         "AND",
@@ -64,8 +78,7 @@ void assembler::load(std::string filename) {
         "store",      //0x2a
         "TARG",
         "UPDATE",
-        "WRAP"
-    };
+        "WRAP";
 
     std::ifstream file;
     file.open(filename.c_str(), std::ios_base::in);
@@ -82,16 +95,15 @@ void assembler::load(std::string filename) {
     while(!file.eof()) {
         file >> symbol;
         char c = *(--symbol.end());
-        if(c == ':') { //symbol is a label definition
+        if(c == ':') //symbol is a label definition
             labels[symbol.substr(0, symbol.length()-1)] = address;
-        }
         else if(c > 47 && c < 58) { //symbol is a number
-            *(long long*)(prg+address) = from_string<long long>(symbol);
+            cpy_val(prg+address, from_string<long long>(symbol));
             address += sizeof(long long);
         }
         else { //symbol is an instruction or label reference
             char i = 0;
-            for(;i < 46; i++) {
+            for(;static_cast<unsigned int>(i) < inst.size(); i++) {
                 if(symbol == inst[(int)i]) {
                     prg[address] = i;
                     address++;
@@ -99,9 +111,9 @@ void assembler::load(std::string filename) {
                 }
             }
 
-            if(i == 46) { //symbol must be a label reference
+            if(static_cast<unsigned int>(i) == inst.size()) { //symbol must be a label reference
                 if(labels.count(symbol) == 1) { //label is already defined
-                    *(int*)(prg+address) = labels[symbol];
+                    cpy_val(prg+address, labels[symbol]);
                     address += sizeof(int);
                 }
                 else {
@@ -109,6 +121,7 @@ void assembler::load(std::string filename) {
                     address += sizeof(int);
                 }
             }
+
         }
     }
 
@@ -122,7 +135,7 @@ void assembler::load(std::string filename) {
     file.close();
 }
 
-void assembler::binary_dump(std::string filename) {
+void assembler::binary_dump(const std::string& filename) {
     std::ofstream file;
     file.open(filename.c_str(), std::ios_base::out);
     for(int i = 0; i < address; i++) {
