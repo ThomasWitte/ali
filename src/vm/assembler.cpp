@@ -1,4 +1,5 @@
 #include "assembler.hpp"
+#include "vm.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -100,11 +101,14 @@ void assembler::load(const std::string& filename) {
         if(c == ':')
             // Symbol is a label definition
             labels[symbol.substr(0, symbol.length()-1)] = address;
-        else if(c > 47 && c < 58)
+        else if(c > 47 && c < 58) {
             // Symbol is a number.
             // Load into program buffer.
-            load_symbol(address, from_string<long long>(symbol));
-        else {
+            mem_obj obj;
+            obj.id = 0x01;
+            obj.data.i = from_string<INTEGER>(symbol);
+            load_symbol(address, obj);
+        } else {
             // Symbol is an instruction or label reference.
             char i = 0;
             for(; static_cast<unsigned int>(i) < inst.size(); i++) {

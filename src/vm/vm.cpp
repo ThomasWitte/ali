@@ -1,10 +1,5 @@
 #include "vm.hpp"
 
-#define INST_TYPE unsigned char
-#define INTEGER long long
-#define ADDR_TYPE unsigned int
-
-
 //returns the real address corresponding to an address in the vm
 //returns calls exception(string) if ADDR is not valid
 #define MEM(ADDR) \
@@ -33,15 +28,15 @@
 //implementations of the instructions
 
 #define _ADD()                                          \
-    *(INTEGER*)FMEM(sp - 2*sizeof(INTEGER)) +=          \
-        *(INTEGER*)FMEM(sp - sizeof(INTEGER));          \
-    sp -= sizeof(INTEGER);                              \
+    *(INTEGER*)FMEM(sp - 2*sizeof(mem_obj)) +=          \
+        *(INTEGER*)FMEM(sp - sizeof(mem_obj));          \
+    sp -= sizeof(mem_obj);                              \
     break;
 
 #define _DUP()                                          \
-    *(INTEGER*)MEM(sp) =                                \
-        *(INTEGER*)FMEM(sp - sizeof(INTEGER));          \
-    sp += sizeof(INTEGER);                              \
+    *(mem_obj*)MEM(sp) =                                \
+        *(mem_obj*)FMEM(sp - sizeof(mem_obj));          \
+    sp += sizeof(mem_obj);                              \
     break;
 
 #define _GETBASIC()                                     \
@@ -49,12 +44,12 @@
     addr1 = *(ADDR_TYPE*)MEM(sp - sizeof(ADDR_TYPE));   \
     sp -= sizeof(ADDR_TYPE);                            \
     /*get the value (skip one byte for the identifier)*/\
-    COPY(sp, addr1+1, sizeof(INTEGER));                 \
-    sp += sizeof(INTEGER);                              \
+    COPY(sp, addr1, sizeof(mem_obj));                   \
+    sp += sizeof(mem_obj);                              \
     break;
 
 #define _JUMPZ()                                        \
-    sp -= sizeof(INTEGER);                              \
+    sp -= sizeof(mem_obj);                              \
     if(*(INTEGER*)FMEM(sp) == 0) {                      \
         pc = *(ADDR_TYPE*)(inst + sizeof(INST_TYPE));   \
         continue;                                       \
@@ -64,33 +59,30 @@
     break;
 
 #define _LOADC()                                        \
-    COPY(sp, pc+sizeof(INST_TYPE), sizeof(INTEGER));    \
-    sp += sizeof(INTEGER);                              \
-    pc += sizeof(INTEGER);                              \
+    COPY(sp, pc+sizeof(INST_TYPE), sizeof(mem_obj));    \
+    sp += sizeof(mem_obj);                              \
+    pc += sizeof(mem_obj);                              \
     break;
 
 #define _MKBASIC()                                      \
     /*allocate memory on the heap*/                     \
-    /*we need one byte more for the type-indentifier*/  \
-    NEW(addr1, sizeof(INTEGER) + 1);                    \
-    /*write an identifier to addr1*/                    \
-    *MEM(addr1) = 'B';                                  \
+    NEW(addr1, sizeof(mem_obj));                        \
     /*copy the data*/                                   \
-    sp -= sizeof(INTEGER);                              \
-    COPY(addr1+1, sp, sizeof(INTEGER));                 \
+    sp -= sizeof(mem_obj);                              \
+    COPY(addr1, sp, sizeof(mem_obj));                   \
     /*push a pointer to the stack*/                     \
     *(ADDR_TYPE*)MEM(sp) = addr1;                       \
     sp += sizeof(ADDR_TYPE);                            \
     break;
 
 #define _STORE()                                        \
-    COPY(sp - sizeof(INTEGER),                          \
-/*this is the destination address + 1 byte identifier*/ \
+    COPY(sp - sizeof(mem_obj),                          \
+    /*this is the destination address*/                 \
          *(ADDR_TYPE*)MEM(                              \
-            sp - sizeof(INTEGER) - sizeof(ADDR_TYPE))+1,\
-         sizeof(INTEGER));                              \
+            sp - sizeof(mem_obj) - sizeof(ADDR_TYPE)),  \
+         sizeof(mem_obj));                              \
     /*adjust the stack pointer*/                        \
-    sp -= sizeof(ADDR_TYPE) + sizeof(INTEGER);          \
+    sp -= sizeof(ADDR_TYPE) + sizeof(mem_obj);          \
     break;
 
 vm::vm(unsigned int memsize) {

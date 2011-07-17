@@ -7,6 +7,10 @@
 #include <string>
 #include <cstring>
 
+#define INST_TYPE unsigned char
+#define INTEGER long long
+#define ADDR_TYPE unsigned int
+
 class vm {
     public:
         enum {
@@ -68,6 +72,41 @@ class vm {
         char *mem;
         unsigned int pc, sp, gp, fp, hp;
         unsigned int memsz;
+};
+
+struct fraction {
+    int nominator;
+    int denominator;
+};
+
+struct cons_cell {
+    ADDR_TYPE car;
+    ADDR_TYPE cdr;
+};
+
+//I introduce this struct to easily manage different object types.
+//By looking at the identifier you can restore the type of the object at every time.
+//If every object has the same size, heap management becomes easier.
+//Problems: mem_obj is 16 bytes large
+//          poor performance
+
+//Performance problems can be solved (mostly) by putting data first in mem_obj,
+//so you can directly cast the pointer to the type you want.
+
+struct mem_obj {
+    union {
+        //Integer Object    id=0x01
+        INTEGER i;
+        //Double Object     id=0x02
+        double d;
+        //Fraction Object   id=0x03
+        fraction f;
+        //Cons cell         id=0x04
+        cons_cell cons;
+        //Pointer Object    id=0x05
+        void *ptr;
+    } data;
+    char id;
 };
 
 #endif
