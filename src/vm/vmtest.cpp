@@ -1,4 +1,4 @@
-#include "vm.h"
+#include "vm.hpp"
 #include "assembler.hpp"
 
 int main(int argc, char **argv) {

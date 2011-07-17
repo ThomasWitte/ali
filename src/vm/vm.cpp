@@ -1,4 +1,4 @@
-#include "vm.h"
+#include "vm.hpp"
 
 #define INST_TYPE unsigned char
 #define INTEGER long long
