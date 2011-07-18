@@ -42,16 +42,16 @@ void assembler::load(const std::string& filename) {
         "DIV",
         "dup",        //0x09
         "EVAL",
-        "EQ",
+        "eq",         //0x0b
         "getbasic",   //0x0c
         "GETVEC",
-        "GEQ",
-        "GR",
+        "geq",        //0x0e
+        "gr",         //0x0f
         "halt",       //0x10
         "jump",       //0x11
         "jumpz",      //0x12
-        "LE",
-        "LEQ",
+        "le",         //0x13
+        "leq",        //0x14
         "loada",      //0x15
         "loadc",      //0x16
         "MARK",
@@ -63,11 +63,12 @@ void assembler::load(const std::string& filename) {
         "MKFUNVAL",
         "MKVEC",
         "MKVEC0",
-        "NEG",
-        "NEQ",
+        "neg",        //0x20
+        "neq",        //0x21
         "NIL",
+        "not",        //0x23
         "OR",
-        "print",      //0x24
+        "print",      //0x25
         "PUSHGLOB",
         "PUSHLOC",
         "RETURN",
@@ -75,7 +76,7 @@ void assembler::load(const std::string& filename) {
         "POPENV",
         "SLIDE",
         "SUB",
-        "store",      //0x2c
+        "store",      //0x2d
         "TARG",
         "UPDATE",
         "WRAP";

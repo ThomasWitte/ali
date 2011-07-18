@@ -84,6 +84,17 @@
     sp += sizeof(ADDR_TYPE);                            \
     break;
 
+#define _NEG()                                          \
+    *(INTEGER*)FMEM(sp - sizeof(mem_obj)) *= -1;        \
+    break;
+
+#define _NOT()                                          \
+    if(*(INTEGER*)FMEM(sp - sizeof(mem_obj)))           \
+        *(INTEGER*)FMEM(sp - sizeof(mem_obj)) = 0;      \
+    else                                                \
+        *(INTEGER*)FMEM(sp - sizeof(mem_obj)) = 1;      \
+    break;
+
 #define _PRINT()                                        \
     switch(((mem_obj*)FMEM(sp - sizeof(mem_obj)))->id) {\
         case 0x01: /*INTEGER*/                          \
@@ -143,6 +154,15 @@
          sizeof(mem_obj));                              \
     /*adjust the stack pointer*/                        \
     sp -= sizeof(ADDR_TYPE) + sizeof(mem_obj);          \
+    break;
+
+#define _VGL(op)                                        \
+    if(*(INTEGER*)FMEM(sp - 2*sizeof(mem_obj)) op       \
+       *(INTEGER*)FMEM(sp - sizeof(mem_obj)))           \
+        *(INTEGER*)FMEM(sp - 2*sizeof(mem_obj)) = 1;    \
+    else                                                \
+        *(INTEGER*)FMEM(sp - 2*sizeof(mem_obj)) = 0;    \
+    sp -= sizeof(mem_obj);                              \
     break;
 
 vm::vm(unsigned int memsize) {
@@ -211,9 +231,21 @@ int vm::start() {
             //duplicates the integer on top of the stack
             _DUP();
 
+            case EQ:
+            //boolean < operator, which takes 2 INTEGER arguments from the stack and returns 0 or 1
+            _VGL(==);
+
             case GETBASIC:
             //replaces a pointer to a data object with the object
             _GETBASIC();
+
+            case GR:
+            //boolean > operator, which takes 2 INTEGER arguments from the stack and returns 0 or 1
+            _VGL(>);
+
+            case GEQ:
+            //boolean >= operator, which takes 2 INTEGER arguments from the stack and returns 0 or 1
+            _VGL(>=);
 
             case HALT:
             //Stops the vm
@@ -228,6 +260,14 @@ int vm::start() {
             //Jumps if the long long on top of the stack is 0
             _JUMPZ();
 
+            case LE:
+            //boolean < operator, which takes 2 INTEGER arguments from the stack and returns 0 or 1
+            _VGL(<);
+
+            case LEQ:
+            //boolean <= operator, which takes 2 INTEGER arguments from the stack and returns 0 or 1
+            _VGL(<=);
+
             case LOADA:
             //loads the address, the argument points to on top of the stack
             _LOADA();
@@ -235,6 +275,22 @@ int vm::start() {
             case LOADC:
             //loads a INTEGER constant on the stack
             _LOADC();
+
+            case MKBASIC:
+            //Takes the mem_obj from the stack and stores it on the heap
+            _MKBASIC();
+
+            case NEG:
+            //negates the integer on the stack
+            _NEG();
+
+            case NEQ:
+            //boolean != operator, which takes 2 INTEGER arguments from the stack and returns 0 or 1
+            _VGL(!=);
+
+            case NOT:
+            //boolean negation on INTEGER
+            _NOT();
 
             case PRINT:
             //Prints the mem_obj on the stack to stdout
@@ -244,10 +300,6 @@ int vm::start() {
             //pushes the value at pos 2 of the stack to the adress lying on top of the stack
             //there is no check, if the destination address is allocated or of the right type
             _STORE();
-
-            case MKBASIC:
-            //Takes the mem_obj from the stack and stores it on the heap
-            _MKBASIC();
 
             default:
             std::cerr << "Unrecognized Opcode " << (int)*inst << std::endl;

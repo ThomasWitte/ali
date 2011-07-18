@@ -25,16 +25,16 @@ class vm {
             DIV,
             DUP,        //0x09
             EVAL,
-            EQ,
+            EQ,         //0x0b
             GETBASIC,   //0x0c
             GETVEC,
-            GEQ,
-            GR,
+            GEQ,        //0x0e
+            GR,         //0x0f
             HALT,       //0x10
             JUMP,       //0x11
             JUMPZ,      //0x12
-            LE,
-            LEQ,
+            LE,         //0x13
+            LEQ,        //0x14
             LOADA,      //0x15
             LOADC,      //0x16
             MARK,
@@ -46,11 +46,12 @@ class vm {
             MKFUNVAL,
             MKVEC,
             MKVEC0,
-            NEG,
-            NEQ,
+            NEG,        //0x20
+            NEQ,        //0x21
             NIL,
+            NOT,        //0x23
             OR,
-            PRINT,      //0x24
+            PRINT,      //0x25
             PUSHGLOB,
             PUSHLOC,
             RETURN,
@@ -58,7 +59,7 @@ class vm {
             POPENV,
             SLIDE,
             SUB,
-            STORE,      //0x2c
+            STORE,      //0x2d
             TARG,
             UPDATE,
             WRAP
