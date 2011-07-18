@@ -9,7 +9,7 @@
 
 #define INST_TYPE unsigned char
 #define INTEGER long long
-#define ADDR_TYPE unsigned int
+#define ADDR_TYPE int
 
 class vm {
     public:
@@ -35,12 +35,13 @@ class vm {
             JUMPZ,      //0x12
             LE,
             LEQ,
-            LOADC,      //0x15
+            LOADA,      //0x15
+            LOADC,      //0x16
             MARK,
             MARK0,
             MOD,
             MUL,
-            MKBASIC,    //0x1a
+            MKBASIC,    //0x1b
             MKCLOS,
             MKFUNVAL,
             MKVEC,
@@ -49,6 +50,7 @@ class vm {
             NEQ,
             NIL,
             OR,
+            PRINT,      //0x24
             PUSHGLOB,
             PUSHLOC,
             RETURN,
@@ -56,7 +58,7 @@ class vm {
             POPENV,
             SLIDE,
             SUB,
-            STORE,      //0x2a
+            STORE,      //0x2c
             TARG,
             UPDATE,
             WRAP
@@ -70,8 +72,8 @@ class vm {
         void load_binary(std::string filename);
     private:
         char *mem;
-        unsigned int pc, sp, gp, fp, hp;
-        unsigned int memsz;
+        ADDR_TYPE pc, sp, gp, fp, hp;
+        ADDR_TYPE memsz;
 };
 
 struct fraction {

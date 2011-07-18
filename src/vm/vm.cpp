@@ -41,6 +41,7 @@
 
 #define _GETBASIC()                                     \
     /*save the address in addr1*/                       \
+    /*FMEM seems to be slower, I don't know why…*/      \
     addr1 = *(ADDR_TYPE*)MEM(sp - sizeof(ADDR_TYPE));   \
     sp -= sizeof(ADDR_TYPE);                            \
     /*get the value (skip one byte for the identifier)*/\
@@ -55,6 +56,14 @@
         continue;                                       \
     }                                                   \
     /*Skip the argument of jumpz*/                      \
+    pc += sizeof(ADDR_TYPE);                            \
+    break;
+
+#define _LOADA()                                        \
+    COPY(sp,                                            \
+         sp+*(ADDR_TYPE*)FMEM(pc+sizeof(INST_TYPE)),    \
+         sizeof(ADDR_TYPE));                            \
+    sp += sizeof(ADDR_TYPE);                            \
     pc += sizeof(ADDR_TYPE);                            \
     break;
 
@@ -75,11 +84,62 @@
     sp += sizeof(ADDR_TYPE);                            \
     break;
 
+#define _PRINT()                                        \
+    switch(((mem_obj*)FMEM(sp - sizeof(mem_obj)))->id) {\
+        case 0x01: /*INTEGER*/                          \
+        std::cout <<                                    \
+         ((mem_obj*)FMEM(sp - sizeof(mem_obj)))->data.i \
+         << std::endl;                                  \
+        break;                                          \
+                                                        \
+        case 0x02: /*Double*/                           \
+        std::cout <<                                    \
+         ((mem_obj*)FMEM(sp - sizeof(mem_obj)))->data.d \
+         << std::endl;                                  \
+        break;                                          \
+                                                        \
+        case 0x03: /*Fraction*/                         \
+        std::cout <<                                    \
+         ((mem_obj*)FMEM(sp - sizeof(mem_obj)))         \
+             ->data.f.nominator << "/" <<               \
+         ((mem_obj*)FMEM(sp - sizeof(mem_obj)))         \
+             ->data.f.denominator                       \
+         << std::endl;                                  \
+        break;                                          \
+                                                        \
+        case 0x04: /*Cons-Cell*/                        \
+        if(((mem_obj*)FMEM(sp - sizeof(mem_obj)))       \
+            ->data.cons.cdr == 0) {                     \
+            /*Cons-cell is not a list*/                 \
+            std::cout << "(" <<                         \
+             ((mem_obj*)FMEM(sp - sizeof(mem_obj)))     \
+                 ->data.cons.car << " . " <<            \
+             ((mem_obj*)FMEM(sp - sizeof(mem_obj)))     \
+                 ->data.cons.cdr << ")"                 \
+             << std::endl;                              \
+        } else {                                        \
+            /*TODO: Print list*/                        \
+        }                                               \
+        break;                                          \
+                                                        \
+        case 0x05: /*Pointer*/                          \
+            std::cout <<                                \
+             ((mem_obj*)FMEM(sp - sizeof(mem_obj)))     \
+                 ->data.ptr                             \
+             << std::endl;                              \
+        break;                                          \
+                                                        \
+        default:                                        \
+            exception("PRINT: Not an Object");          \
+        break;                                          \
+    }                                                   \
+    sp -= sizeof(mem_obj);                              \
+    break;
+
 #define _STORE()                                        \
-    COPY(sp - sizeof(mem_obj),                          \
-    /*this is the destination address*/                 \
-         *(ADDR_TYPE*)MEM(                              \
-            sp - sizeof(mem_obj) - sizeof(ADDR_TYPE)),  \
+    COPY(*(ADDR_TYPE*)FMEM(                             \
+            sp - sizeof(ADDR_TYPE)),                    \
+         sp - sizeof(mem_obj) - sizeof(ADDR_TYPE),      \
          sizeof(mem_obj));                              \
     /*adjust the stack pointer*/                        \
     sp -= sizeof(ADDR_TYPE) + sizeof(mem_obj);          \
@@ -168,17 +228,25 @@ int vm::start() {
             //Jumps if the long long on top of the stack is 0
             _JUMPZ();
 
+            case LOADA:
+            //loads the address, the argument points to on top of the stack
+            _LOADA();
+
             case LOADC:
             //loads a INTEGER constant on the stack
             _LOADC();
 
+            case PRINT:
+            //Prints the mem_obj on the stack to stdout
+            _PRINT();
+
             case STORE:
-            //pushes the value on top of the stack to the adress lying at pos 2 of the stack
+            //pushes the value at pos 2 of the stack to the adress lying on top of the stack
             //there is no check, if the destination address is allocated or of the right type
             _STORE();
 
             case MKBASIC:
-            //Takes the INTEGER from the stack and stores it on the heap
+            //Takes the mem_obj from the stack and stores it on the heap
             _MKBASIC();
 
             default:

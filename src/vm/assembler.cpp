@@ -52,12 +52,13 @@ void assembler::load(const std::string& filename) {
         "jumpz",      //0x12
         "LE",
         "LEQ",
-        "loadc",      //0x15
+        "loada",      //0x15
+        "loadc",      //0x16
         "MARK",
         "MARK0",
         "MOD",
         "MUL",
-        "mkbasic",    //0x1a
+        "mkbasic",    //0x1b
         "MKCLOS",
         "MKFUNVAL",
         "MKVEC",
@@ -66,6 +67,7 @@ void assembler::load(const std::string& filename) {
         "NEQ",
         "NIL",
         "OR",
+        "print",      //0x24
         "PUSHGLOB",
         "PUSHLOC",
         "RETURN",
@@ -73,7 +75,7 @@ void assembler::load(const std::string& filename) {
         "POPENV",
         "SLIDE",
         "SUB",
-        "store",      //0x2a
+        "store",      //0x2c
         "TARG",
         "UPDATE",
         "WRAP";
@@ -101,7 +103,10 @@ void assembler::load(const std::string& filename) {
         if(c == ':')
             // Symbol is a label definition
             labels[symbol.substr(0, symbol.length()-1)] = address;
-        else if(c > 47 && c < 58) {
+        else if(symbol[0] == '#') {
+            // Symbol is a relative address
+            load_symbol(address, from_string<ADDR_TYPE>(symbol.substr(1, symbol.length()-1)));
+        } else if(c > 47 && c < 58) {
             // Symbol is a number.
             // Load into program buffer.
             mem_obj obj;
